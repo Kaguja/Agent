@@ -1,0 +1,1 @@
+max_read_chars = 10000
