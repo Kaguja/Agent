@@ -11,3 +11,6 @@ wheels/
 
 #for API Key
 .env
+
+# personal test things
+test/
