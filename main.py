@@ -1,5 +1,6 @@
 import argparse
 import os
+import sys
 
 from dotenv import load_dotenv
 from google import genai
@@ -23,7 +24,16 @@ def main():
 
     client = genai.Client(api_key=api_key)
     messages = [types.Content(role="user", parts=[types.Part(text=args.user_prompt)])]
-    generate_content(client, messages,args.verbose)
+    for _ in range(20):
+        final_text = generate_content(client, messages, args.verbose)
+        if final_text:
+            print("Final response:")
+            print(final_text)
+            return final_text
+
+    print("Maximum iterations reached")
+    sys.exit(1)
+
 
 
 def generate_content(client, messages,verbose):
@@ -35,18 +45,21 @@ def generate_content(client, messages,verbose):
     if not response.usage_metadata:
         raise RuntimeError("Gemini API response appears to be malformed")
 
-    if verbose == True:
+    if verbose:
         print(f"User prompt: {messages}")
         print("Prompt tokens:", response.usage_metadata.prompt_token_count)
         print("Response tokens:", response.usage_metadata.candidates_token_count)
 
+    functions = []
+
+    if response.candidates:
+        for candidate in response.candidates:
+            if candidate.content:
+                messages.append(candidate.content)
 
     if not response.function_calls:
-        print("Response:")
-        print(response.text)
-        return
+        return response.text
 
-    functions = []
     for function_call in response.function_calls:
         function_call_result = call_function(function_call,verbose)
         if (
@@ -57,11 +70,17 @@ def generate_content(client, messages,verbose):
             raise RuntimeError("empty function response")
         if verbose:
             print(f"-> {function_call_result.parts[0].function_response.response}")
+            print("Response:")
+            
         functions.append(function_call_result.parts[0])
 
 
         print(f"Calling function: {function_call.name}({function_call.args},)")
 
+
+    messages.append(types.Content(role="user", parts=functions))
+
+    
 
 if __name__ == "__main__":
     main()
