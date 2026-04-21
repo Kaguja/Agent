@@ -10,7 +10,9 @@ def remove_file(working_directory,file_path):
             return f'Error: Cannot write to "{file_path}" as it is outside the permitted working directory'
         if os.path.isdir(target_file):
             return f'Error: Cannot interact with "{file_path}" as it is a directory'
-        os.remove(file_path)
+        if not os.path.exists(target_file):
+            return f'Error: File "{file_path}" does not exist'
+        os.remove(target_file)
         return f'Successfully removed "{file_path}"'
 
     except Exception as e:
